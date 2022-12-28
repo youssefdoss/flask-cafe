@@ -145,6 +145,11 @@ class User(db.Model):
     def __repr__(self):
         return f'<User id={self.id} username="{self.username}">'
 
+    def get_full_name(self):
+        """Return full name."""
+
+        return f"{self.first_name} {self.last_name}"
+
     @classmethod
     def register(
         cls,
@@ -179,9 +184,9 @@ class User(db.Model):
         '''If user authentication is valid, return that user,
         otherwise, return False'''
 
-        user = cls.query.filter_by(username=username).one()
+        user = cls.query.filter_by(username=username).one_or_none()
 
-        if user and brcypt.check_password_hash(user.hashed_password, password):
+        if user and bcrypt.check_password_hash(user.hashed_password, password):
             return user
         else:
             return False

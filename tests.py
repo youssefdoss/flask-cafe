@@ -1,13 +1,12 @@
 """Tests for Flask Cafe."""
 
 
-# import re
-from unittest import TestCase
 import re
+from unittest import TestCase
 
-# from flask import session
-from app import app  # , CURR_USER_KEY
-from models import db, Cafe, City, connect_db  # , User, Like
+from flask import session
+from app import app, CURR_USER_KEY
+from models import db, Cafe, City, User, connect_db  # , Like
 
 # Use test database and don't clutter tests with SQL
 app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql:///flaskcafe_test"
@@ -40,11 +39,11 @@ def debug_html(response, label="DEBUGGING"):  # pragma: no cover
     print("\n\n")
 
 
-# def login_for_test(client, user_id):
-#     """Log in this user."""
+def login_for_test(client, user_id):
+    """Log in this user."""
 
-#     with client.session_transaction() as sess:
-#         sess[CURR_USER_KEY] = user_id
+    with client.session_transaction() as sess:
+        sess[CURR_USER_KEY] = user_id
 
 
 #######################################
@@ -75,42 +74,42 @@ CAFE_DATA_EDIT = dict(
     image_url="http://new-image.com/"
 )
 
-# TEST_USER_DATA = dict(
-#     username="test",
-#     first_name="Testy",
-#     last_name="MacTest",
-#     description="Test Description.",
-#     email="test@test.com",
-#     password="secret",
-# )
+TEST_USER_DATA = dict(
+    username="test",
+    first_name="Testy",
+    last_name="MacTest",
+    description="Test Description.",
+    email="test@test.com",
+    password="secret",
+)
 
-# TEST_USER_DATA_EDIT = dict(
-#     first_name="new-fn",
-#     last_name="new-ln",
-#     description="new-description",
-#     email="new-email@test.com",
-#     image_url="http://new-image.com",
-# )
+TEST_USER_DATA_EDIT = dict(
+    first_name="new-fn",
+    last_name="new-ln",
+    description="new-description",
+    email="new-email@test.com",
+    image_url="http://new-image.com",
+)
 
-# TEST_USER_DATA_NEW = dict(
-#     username="new-username",
-#     first_name="new-fn",
-#     last_name="new-ln",
-#     description="new-description",
-#     password="secret",
-#     email="new-email@test.com",
-#     image_url="http://new-image.com",
-# )
+TEST_USER_DATA_NEW = dict(
+    username="new-username",
+    first_name="new-fn",
+    last_name="new-ln",
+    description="new-description",
+    password="secret",
+    email="new-email@test.com",
+    image_url="http://new-image.com",
+)
 
-# ADMIN_USER_DATA = dict(
-#     username="admin",
-#     first_name="Addie",
-#     last_name="MacAdmin",
-#     description="Admin Description.",
-#     email="admin@test.com",
-#     password="secret",
-#     admin=True,
-# )
+ADMIN_USER_DATA = dict(
+    username="admin",
+    first_name="Addie",
+    last_name="MacAdmin",
+    description="Admin Description.",
+    email="admin@test.com",
+    password="secret",
+    admin=True,
+)
 
 
 #######################################
@@ -162,9 +161,6 @@ class CityModelTestCase(TestCase):
         choices = City.get_choices_vocab()
 
         self.assertEqual(choices, [('sf', 'San Francisco')])
-
-    # depending on how you solve exercise, you may have things to test on
-    # the City model, so here's a good place to put that stuff.
 
 
 #######################################
@@ -319,154 +315,164 @@ class CafeAdminViewsTestCase(TestCase):
 # users
 
 
-# class UserModelTestCase(TestCase):
-#     """Tests for the user model."""
+class UserModelTestCase(TestCase):
+    """Tests for the user model."""
 
-#     def setUp(self):
-#         """Before each test, add sample users."""
+    def setUp(self):
+        """Before each test, add sample users."""
 
-#         User.query.delete()
+        User.query.delete()
 
-#         user = User.register(**TEST_USER_DATA)
-#         db.session.add(user)
+        user = User.register(**TEST_USER_DATA)
+        db.session.add(user)
 
-#         db.session.commit()
+        db.session.commit()
 
-#         self.user = user
+        self.user = user
 
-#     def tearDown(self):
-#         """After each test, remove all users."""
+    def tearDown(self):
+        """After each test, remove all users."""
 
-#         User.query.delete()
-#         db.session.commit()
+        User.query.delete()
+        db.session.commit()
 
-#     def test_authenticate(self):
-#         rez = User.authenticate("test", "secret")
-#         self.assertEqual(rez, self.user)
+    def test_authenticate(self):
+        rez = User.authenticate("test", "secret")
+        self.assertEqual(rez, self.user)
 
-#     def test_authenticate_fail(self):
-#         rez = User.authenticate("no-such-user", "secret")
-#         self.assertFalse(rez)
+    def test_authenticate_fail(self):
+        rez = User.authenticate("no-such-user", "secret")
+        self.assertFalse(rez)
 
-#         rez = User.authenticate("test", "password")
-#         self.assertFalse(rez)
+        rez = User.authenticate("test", "password")
+        self.assertFalse(rez)
 
-#     def test_full_name(self):
-#         self.assertEqual(self.user.get_full_name(), "Testy MacTest")
+    def test_full_name(self):
+        self.assertEqual(self.user.get_full_name(), "Testy MacTest")
 
-#     def test_register(self):
-#         u = User.register(**TEST_USER_DATA)
-#         # test that password gets bcrypt-hashed (all start w/$2b$)
-#         self.assertEqual(u.hashed_password[:4], "$2b$")
-#         db.session.rollback()
-
-
-# class AuthViewsTestCase(TestCase):
-#     """Tests for views on logging in/logging out/registration."""
-
-#     def setUp(self):
-#         """Before each test, add sample users."""
-
-#         User.query.delete()
-
-#         user = User.register(**TEST_USER_DATA)
-#         db.session.add(user)
-
-#         db.session.commit()
-
-#         self.user_id = user.id
-
-#     def tearDown(self):
-#         """After each test, remove all users."""
-
-#         User.query.delete()
-#         db.session.commit()
-
-#     def test_signup(self):
-#         with app.test_client() as client:
-#             resp = client.get("/signup")
-#             self.assertIn(b'Sign Up', resp.data)
-
-#             resp = client.post(
-#                 "/signup",
-#                 data=TEST_USER_DATA_NEW,
-#                 follow_redirects=True,
-#             )
-
-#             self.assertIn(b"You are signed up and logged in.", resp.data)
-#             self.assertTrue(session.get(CURR_USER_KEY))
-
-#     def test_signup_username_taken(self):
-#         with app.test_client() as client:
-#             resp = client.get("/signup")
-#             self.assertIn(b'Sign Up', resp.data)
-
-#             # signup with same data as the already-added user
-#             resp = client.post(
-#                 "/signup",
-#                 data=TEST_USER_DATA,
-#                 follow_redirects=True,
-#             )
-
-#             self.assertIn(b"Username already taken", resp.data)
-
-#     def test_login(self):
-#         with app.test_client() as client:
-#             resp = client.get("/login")
-#             self.assertIn(b'Welcome Back!', resp.data)
-
-#             resp = client.post(
-#                 "/login",
-#                 data={"username": "test", "password": "WRONG"},
-#                 follow_redirects=True,
-#             )
-
-#             self.assertIn(b"Invalid credentials", resp.data)
-
-#             resp = client.post(
-#                 "/login",
-#                 data={"username": "test", "password": "secret"},
-#                 follow_redirects=True,
-#             )
-
-#             self.assertIn(b"Hello, test", resp.data)
-#             self.assertEqual(session.get(CURR_USER_KEY), self.user_id)
-
-#     def test_logout(self):
-#         with app.test_client() as client:
-#             login_for_test(client, self.user_id)
-#             resp = client.post("/logout", follow_redirects=True)
-
-#             self.assertIn(b"successfully logged out", resp.data)
-#             self.assertEqual(session.get(CURR_USER_KEY), None)
+    def test_register(self):
+        u = User.register(**TEST_USER_DATA)
+        # test that password gets bcrypt-hashed (all start w/$2b$)
+        self.assertEqual(u.hashed_password[:4], "$2b$")
+        db.session.rollback()
 
 
-# class NavBarTestCase(TestCase):
-#     """Tests navigation bar."""
+class AuthViewsTestCase(TestCase):
+    """Tests for views on logging in/logging out/registration."""
 
-#     def setUp(self):
-#         """Before tests, add sample user."""
+    def setUp(self):
+        """Before each test, add sample users."""
 
-#         User.query.delete()
+        User.query.delete()
 
-#         user = User.register(**TEST_USER_DATA)
+        user = User.register(**TEST_USER_DATA)
+        db.session.add(user)
 
-#         db.session.add_all([user])
-#         db.session.commit()
+        db.session.commit()
 
-#         self.user_id = user.id
+        self.user_id = user.id
 
-#     def tearDown(self):
-#         """After tests, remove all users."""
+    def tearDown(self):
+        """After each test, remove all users."""
 
-#         User.query.delete()
-#         db.session.commit()
+        User.query.delete()
+        db.session.commit()
 
-#     def test_anon_navbar(self):
-#         self.fail("FIXME: write this test")
+    def test_signup(self):
+        with app.test_client() as client:
+            resp = client.get("/signup")
+            self.assertIn(b'Sign Up', resp.data)
 
-#     def test_logged_in_navbar(self):
-#         self.fail("FIXME: write this test")
+            resp = client.post(
+                "/signup",
+                data=TEST_USER_DATA_NEW,
+                follow_redirects=True,
+            )
+
+            self.assertIn(b"Sign up successful!", resp.data)
+            self.assertTrue(session.get(CURR_USER_KEY))
+
+    def test_signup_username_taken(self):
+        with app.test_client() as client:
+            resp = client.get("/signup")
+            self.assertIn(b'Sign Up', resp.data)
+
+            # signup with same data as the already-added user
+            # TODO: Ask why this is broken
+            resp = client.post(
+                "/signup",
+                data=TEST_USER_DATA,
+                follow_redirects=True,
+            )
+
+            self.assertIn(b"Username taken, pick a new username", resp.data)
+
+    def test_login(self):
+        with app.test_client() as client:
+            resp = client.get("/login")
+            self.assertIn(b'Welcome Back!', resp.data)
+
+            resp = client.post(
+                "/login",
+                data={"username": "test", "password": "WRONG"},
+                follow_redirects=True,
+            )
+
+            self.assertIn(b"Incorrect username or password", resp.data)
+
+            resp = client.post(
+                "/login",
+                data={"username": "test", "password": "secret"},
+                follow_redirects=True,
+            )
+
+            self.assertIn(b"test logged in", resp.data)
+            self.assertEqual(session.get(CURR_USER_KEY), self.user_id)
+
+    def test_logout(self):
+        with app.test_client() as client:
+            login_for_test(client, self.user_id)
+            resp = client.post("/logout", follow_redirects=True)
+
+            self.assertIn(b"Log out successful", resp.data)
+            self.assertEqual(session.get(CURR_USER_KEY), None)
+
+
+class NavBarTestCase(TestCase):
+    """Tests navigation bar."""
+
+    def setUp(self):
+        """Before tests, add sample user."""
+
+        User.query.delete()
+
+        user = User.register(**TEST_USER_DATA)
+
+        db.session.add_all([user])
+        db.session.commit()
+
+        self.user_id = user.id
+
+    def tearDown(self):
+        """After tests, remove all users."""
+
+        User.query.delete()
+        db.session.commit()
+
+    def test_anon_navbar(self):
+        with app.test_client() as client:
+            resp = client.get('/')
+
+            self.assertIn(b'Sign Up', resp.data)
+            self.assertNotIn(b'Testy MacTest', resp.data)
+
+    def test_logged_in_navbar(self):
+        with app.test_client() as client:
+            login_for_test(client, self.user_id)
+            resp = client.get('/')
+
+            self.assertIn(b'Testy MacTest', resp.data)
+            self.assertNotIn(b'Sign Up', resp.data)
 
 
 # class ProfileViewsTestCase(TestCase):

@@ -3,9 +3,10 @@
 from flask import Flask, render_template, flash, redirect, session, g
 from flask_debugtoolbar import DebugToolbarExtension
 import os
+from sqlalchemy.exc import IntegrityError
 
-from models import db, connect_db, Cafe, City
-from forms import AddEditCafeForm
+from models import db, connect_db, Cafe, City, User
+from forms import AddEditCafeForm, SignupForm, LoginForm
 
 
 app = Flask(__name__)
@@ -93,7 +94,7 @@ def signup():
             db.session.commit()
 
         except IntegrityError:
-            flash("Username taken, pick a new username")
+            flash("Username taken, pick a new username", 'danger')
             return render_template('auth/signup-form.html', form=form)
 
         do_login(user)
@@ -115,10 +116,10 @@ def login():
 
         if user:
             do_login(user)
-            flash(f"{user.username} logged in")
+            flash(f"{user.username} logged in", 'success')
             return redirect("/cafes")
 
-        flash("Incorrect username or password")
+        flash("Incorrect username or password", 'danger')
 
     return render_template('auth/login-form.html', form=form)
 
@@ -128,7 +129,7 @@ def logout():
 
     do_logout()
 
-    flash("Log out successful")
+    flash("Log out successful", 'success')
     return redirect("/")
 
 
