@@ -12,7 +12,26 @@
 
   <div class="col-12 col-sm-10 col-md-8">
 
-    <h1>{{ cafe.name }}</h1>
+    <h1>{{ cafe.name }}
+      {% if g.user %}
+      <form class="ml-3 d-inline">
+        <button id="unlike" style="display: none"
+          class="btn-sm btn btn-outline-primary" formaction="/unlike">
+          Liked
+        </button>
+        <button id="like" style="display: none"
+          class="btn-sm btn btn-outline-secondary" formaction="/like">
+          Unliked
+        </button>
+      </form>
+      {% endif %}
+
+      <script>
+        const cafeId = {{ cafe.id }}
+      </script>
+
+      <script src="/static/js/liking.js"></script>
+    </h1>
 
     <p class="lead">{{ cafe.description }}</p>
 

@@ -1,12 +1,12 @@
 """Tests for Flask Cafe."""
 
-
+# TODO: Add docstrings
 import re
 from unittest import TestCase
 
 from flask import session
 from app import app, CURR_USER_KEY
-from models import db, Cafe, City, User, connect_db  # , Like
+from models import db, Cafe, City, User, Like, connect_db
 
 # Use test database and don't clutter tests with SQL
 app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql:///flaskcafe_test"
@@ -375,8 +375,7 @@ class AuthViewsTestCase(TestCase):
     def tearDown(self):
         """After each test, remove all users."""
 
-        User.query.delete()
-        db.session.commit()
+        db.session.rollback()
 
     def test_signup(self):
         with app.test_client() as client:
@@ -456,8 +455,7 @@ class NavBarTestCase(TestCase):
     def tearDown(self):
         """After tests, remove all users."""
 
-        User.query.delete()
-        db.session.commit()
+        db.session.rollback()
 
     def test_anon_navbar(self):
         with app.test_client() as client:
@@ -475,38 +473,65 @@ class NavBarTestCase(TestCase):
             self.assertNotIn(b'Sign Up', resp.data)
 
 
-# class ProfileViewsTestCase(TestCase):
-#     """Tests for views on user profiles."""
+class ProfileViewsTestCase(TestCase):
+    """Tests for views on user profiles."""
 
-#     def setUp(self):
-#         """Before each test, add sample user."""
+    def setUp(self):
+        """Before each test, add sample user."""
 
-#         User.query.delete()
+        User.query.delete()
 
-#         user = User.register(**TEST_USER_DATA)
-#         db.session.add(user)
+        user = User.register(**TEST_USER_DATA)
+        db.session.add(user)
 
-#         db.session.commit()
+        db.session.commit()
 
-#         self.user_id = user.id
+        self.user_id = user.id
 
-#     def tearDown(self):
-#         """After each test, remove all users."""
+    def tearDown(self):
+        """After each test, remove all users."""
 
-#         User.query.delete()
-#         db.session.commit()
+        User.query.delete()
+        db.session.commit()
 
-#     def test_anon_profile(self):
-#         self.fail("FIXME: write this test")
+    def test_anon_profile(self):
+        'Tests that viewing the profile while not logged in returns correct html'
+        with app.test_client() as client:
+            resp = client.get("/profile", follow_redirects=True)
+            self.assertIn(b'not logged in', resp.data)
 
-#     def test_logged_in_profile(self):
-#         self.fail("FIXME: write this test")
+    def test_logged_in_profile(self):
+        'Tests that viewing the profile while logged in returns correct html'
+        with app.test_client() as client:
+            login_for_test(client, self.user_id)
+            resp = client.get("/profile")
+            self.assertIn(b'/profile/edit', resp.data)
 
-#     def test_anon_profile_edit(self):
-#         self.fail("FIXME: write this test")
+    def test_anon_profile_edit(self):
+        'Tests that editing the profile while not logged in returns correct html'
+        with app.test_client() as client:
+            resp = client.get("/profile/edit", follow_redirects=True)
+            self.assertIn(b'not logged in', resp.data)
 
-#     def test_logged_in_profile_edit(self):
-#         self.fail("FIXME: write this test")
+            resp = client.post("/profile/edit", follow_redirects=True)
+            self.assertIn(b'not logged in.', resp.data)
+
+    def test_logged_in_profile_edit(self):
+        'Tests that editing the profile while logged in returns correct html'
+        with app.test_client() as client:
+            login_for_test(client, self.user_id)
+            resp = client.get("/profile/edit")
+            self.assertIn(b'Edit Profile', resp.data)
+
+            resp = client.post(
+                "/profile/edit",
+                data=TEST_USER_DATA_EDIT,
+                follow_redirects=True)
+
+            self.assertIn(b'new-fn new-ln', resp.data)
+            self.assertIn(b'new-description', resp.data)
+            self.assertIn(b'new-email', resp.data)
+            self.assertIn(b'new-image', resp.data)
 
 
 #######################################
@@ -514,6 +539,92 @@ class NavBarTestCase(TestCase):
 
 
 class LikeViewsTestCase(TestCase):
-    """Tests for views on cafes."""
+    """Tests for views on likes."""
 
-    # FIXME: add setup/teardown/inidividual tests
+    def setUp(self):
+        """Before each test, add sample city, users, and cafes"""
+
+        Like.query.delete()
+        Cafe.query.delete()
+        City.query.delete()
+        User.query.delete()
+
+        sf = City(**CITY_DATA)
+        db.session.add(sf)
+
+        user = User.register(**TEST_USER_DATA)
+        db.session.add(user)
+
+        cafe = Cafe(**CAFE_DATA)
+        db.session.add(cafe)
+
+        db.session.commit()
+
+        self.user_id = user.id
+        self.cafe_id = cafe.id
+
+    def tearDown(self):
+        """After each test, delete the cities."""
+
+        db.session.rollback()
+
+    def test_user_profile_no_likes(self):
+        with app.test_client() as client:
+            login_for_test(client, self.user_id)
+
+            resp = client.get(f"/profile", follow_redirects=True)
+            self.assertIn(b'have no liked cafes', resp.data)
+
+    def test_user_profile_likes(self):
+        like = Like(user_id=self.user_id, cafe_id=self.cafe_id)
+        db.session.add(like)
+        db.session.commit()
+
+        with app.test_client() as client:
+            login_for_test(client, self.user_id)
+
+            resp = client.get(f"/profile", follow_redirects=True)
+            self.assertNotIn(b'have no liked cafes', resp.data)
+            self.assertIn(b'Test Cafe', resp.data)
+
+    def test_api_likes(self):
+        like = Like(user_id=self.user_id, cafe_id=self.cafe_id)
+        db.session.add(like)
+        db.session.commit()
+
+        with app.test_client() as client:
+            resp = client.get(f"/api/likes?cafe_id={self.cafe_id}")
+            self.assertEqual(resp.json, {"error": "Not logged in"})
+
+            login_for_test(client, self.user_id)
+
+            resp = client.get(f"/api/likes?cafe_id={self.cafe_id}")
+            self.assertEqual(resp.json, {"likes": True})
+
+    def test_api_like(self):
+        data = {"cafe_id": self.cafe_id}
+
+        with app.test_client() as client:
+            resp = client.post(f"/api/like", json=data)
+            self.assertEqual(resp.json, {"error": "Not logged in"})
+
+            login_for_test(client, self.user_id)
+
+            resp = client.post(f"/api/like", json=data)
+            self.assertEqual(resp.json, {"liked": self.cafe_id})
+
+    def test_api_unlike(self):
+        like = Like(user_id=self.user_id, cafe_id=self.cafe_id)
+        db.session.add(like)
+        db.session.commit()
+
+        data = {"cafe_id": self.cafe_id}
+
+        with app.test_client() as client:
+            resp = client.post(f"/api/unlike", json=data)
+            self.assertEqual(resp.json, {"error": "Not logged in"})
+
+            login_for_test(client, self.user_id)
+
+            resp = client.post(f"/api/unlike", json=data)
+            self.assertEqual(resp.json, {"unliked": self.cafe_id})
